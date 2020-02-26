@@ -17,8 +17,8 @@ import time
 from datetime import date
 from openpyxl.styles import Alignment, Border, Side
 import win32com.client as win32
-import win32api
-
+# import win32api
+import TestSource
 
 files_path = []
 appName = "Check Tool"
@@ -55,8 +55,8 @@ class Application(QWidget):
         self.tabs = QTabWidget()
         self.tab1 = QWidget()
         self.tab2 = QWidget()
-        self.tabs.addTab(self.tab1, "Tab1")
-        self.tabs.addTab(self.tab2, "Tab2")
+        self.tabs.addTab(self.tab1, "Checklist")
+        self.tabs.addTab(self.tab2, "Data files")
         self.initUI(self.tab1)
         # self.initUIOptions(self.tab2)
         self.layout = QVBoxLayout()
@@ -109,18 +109,22 @@ class Application(QWidget):
 
         for index in range(2, SheetSingleChecking.max_row):
             current_list = []
-            current_list.append(SheetSingleChecking.cell(index, 1).value)
-            current_list.append(SheetSingleChecking.cell(index, 2).value)
-            current_list.append(SheetSingleChecking.cell(index, 3).value)
-            current_list.append(SheetSingleChecking.cell(index, 4).value)
-            try:
-                nr_param = self.dict_function[SheetSingleChecking.cell(index,4).value]
-                if nr_param is not None:
-                    for indexCol in range(5, 5 + nr_param):
-                        current_list.append(SheetSingleChecking.cell(index, indexCol).value)
-            except:
-                pass
-            self.single_check_list.append(current_list)
+            if SheetSingleChecking.cell(index, 1).value is not None:
+                current_list.append(SheetSingleChecking.cell(index, 1).value)
+                current_list.append(SheetSingleChecking.cell(index, 2).value)
+                if SheetSingleChecking.cell(index, 2).value == "No":
+                    current_list.append("NT")
+                else:
+                    current_list.append(SheetSingleChecking.cell(index, 3).value)
+                current_list.append(SheetSingleChecking.cell(index, 4).value)
+                try:
+                    nr_param = self.dict_function[SheetSingleChecking.cell(index,4).value]
+                    if nr_param is not None:
+                        for indexCol in range(5, 5 + nr_param):
+                            current_list.append(SheetSingleChecking.cell(index, indexCol).value)
+                except:
+                    pass
+                self.single_check_list.append(current_list)
 
         Sheet = Workbook['Config']
         docColIndex = 0
@@ -176,250 +180,91 @@ class Application(QWidget):
                 f.write(chunk)
         return FilePath
 
-    def CheckEqualValues(self, Reference1, Reference2, Equal):
-
-        if Reference1.split("<>")[0] in self.correspondences:
-            DocPath1 = self.correspondences[Reference1.split("<>")[0]]
-        else:
-            DocPath1 = Reference1.split("<>")[0]
-
-        if Reference2.split("<>")[0] in self.correspondences:
-            DocPath2 = self.correspondences[Reference2.split("<>")[0]]
-        else:
-            DocPath2 = Reference2.split("<>")[0]
-
-        DocWorkbook1 = openpyxl.load_workbook(DocPath1)
-        DocWorkbook2 = openpyxl.load_workbook(DocPath2)
-
-        SheetName1 = Reference1.split("<>")[1]
-        SheetName2 = Reference2.split("<>")[1]
-
-        DocCel1 = Reference1.split("<>")[2]
-        DocCel2 = Reference2.split("<>")[2]
-
-        DocSheet1 = DocWorkbook1[SheetName1]
-        CelValue1 = DocSheet1[DocCel1].value
-
-        DocSheet2 = DocWorkbook2[SheetName2]
-        CelValue2 = DocSheet2[DocCel2].value
-
-        if Equal == "Yes":
-            if CelValue1 == CelValue2:
-                return True
-            else:
-                return False
-
-        elif Equal == "No":
-            if CelValue1 != CelValue2:
-                return True
-            else:
-                return False
-
-    def CheckDocumentTitle(self, Reference1, Reference2):
-
-        if Reference1 in self.correspondences:
-            Value1 = self.correspondences[Reference1].split("/")[-1]
-
-        if Reference2.split("<>")[0] in self.correspondences:
-            DocPath2 = self.correspondences[Reference2.split("<>")[0]]
-        else:
-            DocPath2 = Reference2.split("<>")[0]
-
-        DocWorkbook2 = openpyxl.load_workbook(DocPath2)
-        DocSheet2 = DocWorkbook2[Reference2.split("<>")[1]]
-        Value2 = DocSheet2[Reference2.split("<>")[2]].value
-
-        if Value1.split(".")[0] == Value2.split(".")[0]:
-            return True
-        else:
-            return False
-
-    def CheckDocInfoParameter(self, Link, Parameter, Reference, User, Password):
-
-        FilePath = self.download_file(Link, User, Password)
-
-        extensions = ["xlsx", "xlsm"]
-        if FilePath.split(".")[-1] in extensions:
-            ext = FilePath.split(".")[0]
-            with zipfile.ZipFile(FilePath, 'r') as zip_ref:
-                zip_ref.extractall(ext)
-
-            try:
-                if os.path.isfile(ext + "\docProps\custom.xml"):
-                    path = ext + "\docProps\custom.xml"
-                    parser = etree.XMLParser(remove_comments=True)
-                    tree = objectify.parse(path, parser=parser)
-                    root = tree.getroot()
-                    returned_parameter = root.find(".//{http://schemas.openxmlformats.org/officeDocument/2006/custom-properties}property[@name = " + "\'" +Parameter + "\'" +"]/{http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes}lpwstr").text
-                    shutil.rmtree(ext, ignore_errors=True)
-            except:
-                shutil.rmtree(ext, ignore_errors=True)
-
-        if Reference.split("<>")[0] in self.correspondences:
-            DocPath2 = self.correspondences[Reference.split("<>")[0]]
-        else:
-            DocPath2 = Reference.split("<>")[0]
-
-        DocWorkbook2 = openpyxl.load_workbook(DocPath2)
-        DocSheet2 = DocWorkbook2[Reference.split("<>")[1]]
-        Value2 = DocSheet2[Reference.split("<>")[2]].value
-
-        if returned_parameter in Value2:
-            return True
-        else:
-            return False
-
-    def CheckMultipleValues(self, List, Reference, Equal):
-
-        list_values = List.split(";")
-
-        if Reference.split("<>")[0] in self.correspondences:
-            DocPath = self.correspondences[Reference.split("<>")[0]]
-        else:
-            DocPath = Reference.split("<>")[0]
-        DocWorkbook = openpyxl.load_workbook(DocPath)
-        DocSheet = DocWorkbook[Reference.split("<>")[1]]
-        Value = DocSheet[Reference.split("<>")[2]].value
-
-        if Equal == "True":
-            if Value in list_values:
-                return True
-            else:
-                return False
-        elif Equal == "False":
-            if Value not in list_values:
-                return True
-            else:
-                return False
-
-    def CheckHyperlink(self, Hyperlink, Reference):
-
-        if Hyperlink.split("<>")[0] in self.correspondences:
-            DocPath1 = self.correspondences[Hyperlink.split("<>")[0]]
-        else:
-            DocPath1 = Hyperlink.split("<>")[0]
-        DocWorkbook1 = openpyxl.load_workbook(DocPath1, data_only= True, keep_vba=False)
-
-        if Reference.split("<>")[0] in self.correspondences:
-            DocPath2 = self.correspondences[Reference.split("<>")[0]]
-        else:
-            DocPath2 = Reference.split("<>")[0]
-        DocWorkbook2 = openpyxl.load_workbook(DocPath2, data_only= True, keep_vba=False)
-
-        SheetName1 = Hyperlink.split("<>")[1]
-        SheetName2 = Reference.split("<>")[1]
-
-        DocCel1 = Hyperlink.split("<>")[2]
-        DocCel2 = Reference.split("<>")[2]
-
-        DocSheet1 = DocWorkbook1[SheetName1]
-        CelValue1 = DocSheet1[DocCel1].hyperlink.target
-
-        DocSheet2 = DocWorkbook2[SheetName2]
-        CelValue2 = DocSheet2[DocCel2].value
-
-        if CelValue1 == CelValue2:
-            return True
-        else:
-            return False
-
-    def CheckDocInfoOrder(self, DocInfoReference, Reference, User, Password):
-
-        DocLinkIntranet = 'http://docinfogroupe.inetpsa.com/ead/doc/ref.' + DocInfoReference + '/v.vc/pj'
-        DocLinkInternet = 'https://docinfogroupe.psa-peugeot-citroen.com/ead/doc/ref.' + DocInfoReference + '/v.vc/pj'
-
-
-        FilePath = self.download_file(DocLinkIntranet, User, Password)
-        if FilePath == "Error":
-            FilePath = self.download_file(DocLinkInternet, User, Password)
-
-        Doc1Name = FilePath.split("/")[-1]
-
-        if Reference.split("<>")[0] in self.correspondences:
-            DocPath2 = self.correspondences[Reference.split("<>")[0]]
-        else:
-            DocPath2 = Reference.split("<>")[0]
-
-        SheetName2 = Reference.split("<>")[1]
-        DocCel2 = Reference.split("<>")[2]
-
-        DocWorkbook2 = openpyxl.load_workbook(DocPath2, data_only=True, keep_vba=False)
-        DocSheet2 = DocWorkbook2[SheetName2]
-        CelValue2 = DocSheet2[DocCel2].value
-
-        if Doc1Name == CelValue2:
-            return True
-        else:
-            return False
-
-    def CheckNumberOfPoints(self, Reference1, List, Reference2, Equal):
-
-        if Reference1.split("<>")[0] in self.correspondences:
-            DocPath1 = self.correspondences[Reference1.split("<>")[0]]
-        else:
-            DocPath1 = Reference1.split("<>")[0]
-
-        if Reference2.split("<>")[0] in self.correspondences:
-            DocPath2 = self.correspondences[Reference2.split("<>")[0]]
-        else:
-            DocPath2 = Reference2.split("<>")[0]
-
-        DocWorkbook1 = openpyxl.load_workbook(DocPath1)
-        DocWorkbook2 = openpyxl.load_workbook(DocPath2)
-
-        SheetName1 = Reference1.split("<>")[1]
-        SheetName2 = Reference2.split("<>")[1]
-
-        DocCel1 = Reference1.split("<>")[2]
-        DocCel2 = Reference2.split("<>")[2]
-
-        DocSheet1 = DocWorkbook1[SheetName1]
-        CelValue1 = DocSheet1[DocCel1].value
-
-        DocSheet2 = DocWorkbook2[SheetName2]
-        CelValue2 = DocSheet2[DocCel2].value
-
-        input_values = List.split(";")
-
-        col = ""
-        row = ""
-        for char in DocCel1:
-            if char.isalpha():
-                col += char
-            else:
-                row += char
-
-        row = int(row)
-        number_points = 0
-
-        if Equal == "Yes":
-            while(DocSheet1[col + str(row)].value is not None):
-                if DocSheet1[col + str(row)].value in input_values:
-                    number_points += 1
-                row += 1
-
-        elif Equal == "No":
-            while (DocSheet1[col + str(row)].value is not None):
-                if DocSheet1[col + str(row)].value not in input_values:
-                    number_points += 1
-                row += 1
-
-        if number_points == CelValue2:
-            return True
-        else:
-            return False
-
     def buttonCheckClicked(self):
         for filename in self.list_document:
             exec("self.correspondences['" + filename + "'] = self.tab2.edit" + filename + ".text().strip()")
 
         print(self.correspondences)
 
-        self.CheckEqualValues("C:\\Users\\msnecula\\Downloads\\TP_Checking_Tool_Request_200207.xlsx<>Header<>F1", "C:\\Users\\msnecula\\Downloads\\Checks.xlsx<>Checks<>B2", "No")
+        for test in self.single_check_list:
+            if test[1] == "Yes":
+                if test[3] in self.dict_function:
+                    nr_param = self.dict_function[test[3]]
+                    if nr_param == 2 and test[4] is not None and test[5] is not None:
+                        if test[3] == 'CheckDocumentTitle':
+                            try:
+                                if TestSource.CheckDocumentTitle(self, test[4], test[5]) is True:
+                                    test[2] = 'OK'
+                                else:
+                                    test[2] = 'NOK'
+                            except:
+                                test[2] = 'NA'
+                        elif test[3] == 'CheckHyperlink':
+                            try:
+                                if TestSource.CheckHyperlink(self, test[4], test[5]) is True:
+                                    test[2] = 'OK'
+                                else:
+                                    test[2] = 'NOK'
+                            except:
+                                test[2] = 'NA'
+                    elif nr_param == 3 and test[4] is not None and test[5] is not None and test[6] is not None:
+                        if test[3] == 'CheckEqualValues':
+                            try:
+                                if TestSource.CheckEqualValues(self, test[4], test[5], test[6]) is True:
+                                    test[2] = 'OK'
+                                else:
+                                    test[2] = 'NOK'
+                            except:
+                                test[2] = 'NA'
+                        elif test[3] == 'CheckMultipleValues':
+                            try:
+                                if TestSource.CheckMultipleValues(self, test[4], test[5], test[6]) is True:
+                                    test[2] = 'OK'
+                                else:
+                                    test[2] = 'NOK'
+                            except:
+                                test[2] = 'NA'
+                    elif nr_param == 4 and test[4] is not None and test[5] is not None and test[6] is not None and test[7] is not None:
+                        if test[3] == 'CheckDocInfoOrder':
+                            try:
+                                if TestSource.CheckDocInfoOrder(self, test[4], test[5], test[6], test[7]) is True:
+                                    test[2] = 'OK'
+                                else:
+                                    test[2] = 'NOK'
+                            except:
+                                test[2] = 'NA'
+                        elif test[3] == 'CheckNumberOfPoints':
+                            try:
+                                if TestSource.CheckNumberOfPoints(self, test[4], test[5], test[6], test[7]) is True:
+                                    test[2] = 'OK'
+                                else:
+                                    test[2] = 'NOK'
+                            except:
+                                test[2] = 'NA'
+                    elif nr_param == 5 and test[4] is not None and test[5] is not None and test[6] is not None and test[7] is not None and test[8] is not None:
+                        if test[3] == 'CheckDocInfoParameter':
+                            try:
+                                if TestSource.CheckDocInfoParameter(self, test[4], test[5], test[6], test[7], test[8]) is True:
+                                    test[2] = 'OK'
+                                else:
+                                    test[2] = 'NOK'
+                            except:
+                                test[2] = 'NA'
+                    else:
+                        test[2] = 'NA'
+                else:
+                    test[2] = 'NA'
 
-        self.CheckEqualValues("QIA_TP<>Header<>F1", "Checklist<>Checks<>B2", "No")
+        DocPath = self.tab1.edit1.text()
+        Workbook = openpyxl.load_workbook(DocPath)
+        SheetSingleChecking = Workbook['Single_Checking']
 
-        self.CheckDocumentTitle("QIA_TP", "C:\\Users\\msnecula\\Downloads\\Checks.xlsx<>Checks<>A20")
+        row = 2
+        for test in self.single_check_list:
+            my_cell = SheetSingleChecking.cell(row, 3)
+            my_cell.value = test[2]
+            row += 1
+        Workbook.save(DocPath)
 
 
 if __name__ == '__main__':

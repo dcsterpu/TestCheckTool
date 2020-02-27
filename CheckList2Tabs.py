@@ -1,24 +1,12 @@
 from PyQt5.QtWidgets import *
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
-from PyQt5 import QtWidgets
-from lxml import etree, objectify
-import string
+from PyQt5 import QtCore
 import requests
-import shutil
 import sys
-import zipfile
-# import xlrd
 import os
 import openpyxl
-from openpyxl import Workbook
-import time
-from datetime import date
-from openpyxl.styles import Alignment, Border, Side
-import win32com.client as win32
-# import win32api
+import win32api
 import TestSource
+import time
 
 files_path = []
 appName = "Check Tool"
@@ -66,6 +54,11 @@ class Application(QWidget):
         self.list_document = []
         self.correspondences = {}
         self.single_check_list = []
+
+        self.tool_version = "Check Tool 1.0"
+        self.username = os.environ['USERNAME']
+        self.fileFolder = "C:/Users/" + self.username + "/AppData/Local/Temp/CheckTool/"
+
         self.dict_function = {
             "CheckEqualValues" : 3,
             "CheckDocumentTitle" : 2,
@@ -93,6 +86,13 @@ class Application(QWidget):
         tab.button = QPushButton("Import Checklist", tab)
         tab.button.move(250, 400)
         tab.button.clicked.connect(self.buttonGenerateClicked)
+
+        message = ""
+        tab.textbox = QTextEdit(tab)
+        tab.textbox.setText(message)
+        tab.textbox.move(30, 80)
+        tab.textbox.resize(550, 100)
+        tab.textbox.setReadOnly(True)
 
         self.show()
 
@@ -181,6 +181,9 @@ class Application(QWidget):
         return FilePath
 
     def buttonCheckClicked(self):
+
+        self.start_time = time.time()
+
         for filename in self.list_document:
             exec("self.correspondences['" + filename + "'] = self.tab2.edit" + filename + ".text().strip()")
 
@@ -192,64 +195,26 @@ class Application(QWidget):
                     nr_param = self.dict_function[test[3]]
                     if nr_param == 2 and test[4] is not None and test[5] is not None:
                         if test[3] == 'CheckDocumentTitle':
-                            try:
-                                if TestSource.CheckDocumentTitle(self, test[4], test[5]) is True:
-                                    test[2] = 'OK'
-                                else:
-                                    test[2] = 'NOK'
-                            except:
-                                test[2] = 'NA'
+                                test[2] = TestSource.CheckDocumentTitle(self, test[4], test[5])
                         elif test[3] == 'CheckHyperlink':
-                            try:
-                                if TestSource.CheckHyperlink(self, test[4], test[5]) is True:
-                                    test[2] = 'OK'
-                                else:
-                                    test[2] = 'NOK'
-                            except:
-                                test[2] = 'NA'
+                                test[2] = TestSource.CheckHyperlink(self, test[4], test[5])
+
                     elif nr_param == 3 and test[4] is not None and test[5] is not None and test[6] is not None:
                         if test[3] == 'CheckEqualValues':
-                            try:
-                                if TestSource.CheckEqualValues(self, test[4], test[5], test[6]) is True:
-                                    test[2] = 'OK'
-                                else:
-                                    test[2] = 'NOK'
-                            except:
-                                test[2] = 'NA'
+                            test[2] = TestSource.CheckEqualValues(self, test[4], test[5], test[6])
                         elif test[3] == 'CheckMultipleValues':
-                            try:
-                                if TestSource.CheckMultipleValues(self, test[4], test[5], test[6]) is True:
-                                    test[2] = 'OK'
-                                else:
-                                    test[2] = 'NOK'
-                            except:
-                                test[2] = 'NA'
+                            test[2] = TestSource.CheckMultipleValues(self, test[4], test[5], test[6])
+
                     elif nr_param == 4 and test[4] is not None and test[5] is not None and test[6] is not None and test[7] is not None:
                         if test[3] == 'CheckDocInfoOrder':
-                            try:
-                                if TestSource.CheckDocInfoOrder(self, test[4], test[5], test[6], test[7]) is True:
-                                    test[2] = 'OK'
-                                else:
-                                    test[2] = 'NOK'
-                            except:
-                                test[2] = 'NA'
+                            test[2] = TestSource.CheckDocInfoOrder(self, test[4], test[5], test[6], test[7])
                         elif test[3] == 'CheckNumberOfPoints':
-                            try:
-                                if TestSource.CheckNumberOfPoints(self, test[4], test[5], test[6], test[7]) is True:
-                                    test[2] = 'OK'
-                                else:
-                                    test[2] = 'NOK'
-                            except:
-                                test[2] = 'NA'
+                            test[2] = TestSource.CheckNumberOfPoints(self, test[4], test[5], test[6], test[7])
+
                     elif nr_param == 5 and test[4] is not None and test[5] is not None and test[6] is not None and test[7] is not None and test[8] is not None:
                         if test[3] == 'CheckDocInfoParameter':
-                            try:
-                                if TestSource.CheckDocInfoParameter(self, test[4], test[5], test[6], test[7], test[8]) is True:
-                                    test[2] = 'OK'
-                                else:
-                                    test[2] = 'NOK'
-                            except:
-                                test[2] = 'NA'
+                            test[2] = TestSource.CheckDocInfoParameter(self, test[4], test[5], test[6], test[7], test[8])
+
                     else:
                         test[2] = 'NA'
                 else:
@@ -266,6 +231,9 @@ class Application(QWidget):
             row += 1
         Workbook.save(DocPath)
 
+        self.final_time = time.time()
+        self.tab1.textbox.setText("Tests duration is " + time.strftime('%H:%M:%S', time.gmtime(self.final_time - self.start_time)))
+        win32api.MessageBox(0, 'Tests finished successfully!', 'Information')
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

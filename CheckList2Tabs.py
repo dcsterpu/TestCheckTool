@@ -1,12 +1,16 @@
 from PyQt5.QtWidgets import *
-from PyQt5 import QtCore
+from PyQt5 import QtCore , QtWidgets
 import requests
 import sys
 import os
 import openpyxl
-import win32api
+from openpyxl.styles import PatternFill, Border, Side, Alignment, Protection, Font
 import TestSource
 import time
+import win32api
+import re
+import xlrd
+import getpass
 
 files_path = []
 appName = "Check Tool"
@@ -54,6 +58,8 @@ class Application(QWidget):
         self.list_document = []
         self.correspondences = {}
         self.single_check_list = []
+        self.multiple_check_list = []
+        self.multiple_results = []
 
         self.tool_version = "Check Tool 1.0"
         self.username = os.environ['USERNAME']
@@ -62,24 +68,41 @@ class Application(QWidget):
         self.dict_function = {
             "CheckEqualValues" : 3,
             "CheckDocumentTitle" : 2,
-            "CheckDocInfoParameter" : 5,
+            "CheckDocInfoParameter" : 3,
             "CheckMultipleValues" : 3,
             "CheckHyperlink" : 2,
-            "CheckDocInfoOrder" : 4,
-            "CheckNumberOfPoints" : 4
+            "CheckDocInfoOrder" : 2,
+            "CountNumberOfPoints" : 3
         }
 
     def initUI(self, tab):
 
+        tab.lblUser = QLabel("USER:", tab)
+        tab.lblUser.move(175, 35)
+        tab.TextBoxUser = QtWidgets.QLineEdit(tab)
+        tab.TextBoxUser.resize(180, 25)
+        tab.TextBoxUser.move(250, 30)
+        # tab.TextBoxUser.setText(getpass.getuser())
+        tab.TextBoxUser.setText("E518720")
+
+        tab.lblPass = QLabel("PASSWORD:", tab)
+        tab.lblPass.move(175, 70)
+        tab.TextBoxPass = QtWidgets.QLineEdit(tab)
+        tab.TextBoxPass.resize(180, 25)
+        tab.TextBoxPass.move(250, 65)
+        tab.TextBoxPass.setEchoMode((QLineEdit.Password))
+        tab.TextBoxPass.setText("Cst12323")
+        # tab.TextBoxPass.setText("")
+
         # set controls for Checklist
         tab.label1 = QLabel("Checklist", tab)
-        tab.label1.move(20, 35)
+        tab.label1.move(20, 115)
         tab.edit1 = QLineEdit('', tab)
         tab.edit1.setDragEnabled(False)
-        tab.edit1.move(120, 30)
+        tab.edit1.move(100, 110)
         tab.edit1.resize(430, 25)
         tab.button1 = QPushButton("Browse", tab)
-        tab.button1.move(560, 30)
+        tab.button1.move(540, 110)
         tab.button1.resize(50, 25)
         tab.button1.clicked.connect(self.openFileNameDialog1)
 
@@ -90,7 +113,7 @@ class Application(QWidget):
         message = ""
         tab.textbox = QTextEdit(tab)
         tab.textbox.setText(message)
-        tab.textbox.move(30, 80)
+        tab.textbox.move(30, 150)
         tab.textbox.resize(550, 100)
         tab.textbox.setReadOnly(True)
 
@@ -102,12 +125,14 @@ class Application(QWidget):
 
     def buttonGenerateClicked(self):
 
-        DocPath = self.tab1.edit1.text()
-        Workbook = openpyxl.load_workbook(DocPath)
+        self.tab1.button.setEnabled(False)
 
-        SheetSingleChecking = Workbook['Single_Checking']
+        self.DocPath = self.tab1.edit1.text()
+        self.Workbook = openpyxl.load_workbook(self.DocPath)
 
-        for index in range(2, SheetSingleChecking.max_row):
+        #Single_Checking - parse the functions and the parameters from the sheet
+        SheetSingleChecking = self.Workbook['Single_Checking']
+        for index in range(2, SheetSingleChecking.max_row + 1):
             current_list = []
             if SheetSingleChecking.cell(index, 1).value is not None:
                 current_list.append(SheetSingleChecking.cell(index, 1).value)
@@ -126,12 +151,36 @@ class Application(QWidget):
                     pass
                 self.single_check_list.append(current_list)
 
-        Sheet = Workbook['Config']
+        #Multiple_Checking - parse the functions and the parameters from sheet
+        SheetMultipleChecking = self.Workbook['Multiple_Checking']
+        for index in range(3, SheetMultipleChecking.max_row + 1):
+            current_list = []
+            if SheetMultipleChecking.cell(index,1).value is not None:
+                current_list.append(SheetMultipleChecking.cell(index, 1).value)
+                current_list.append(SheetMultipleChecking.cell(index, 2).value)
+                if SheetMultipleChecking.cell(index, 3).value == "No":
+                    current_list.append("NT")
+                else:
+                    current_list.append(SheetMultipleChecking.cell(index, 3).value)
+                current_list.append(SheetMultipleChecking.cell(index, 4).value)
+                try:
+                    nr_param = self.dict_function[SheetMultipleChecking.cell(index, 4).value]
+                    if nr_param is not None:
+                        for indexCol in range(5, 5 + nr_param):
+                            current_list.append(SheetMultipleChecking.cell(index, indexCol).value)
+                except:
+                    pass
+                self.multiple_check_list.append(current_list)
+            elif SheetMultipleChecking.cell(index, 1).value is None and SheetMultipleChecking.cell(index + 1, 1).value is None:
+                break
+
+        #Config -- parse the documents from the Config sheet
+        Sheet = self.Workbook['Config']
         docColIndex = 0
         docRowIndex = 0
 
-        for index1 in range(1, Sheet.max_row):
-            for index2 in range(1, Sheet.max_column):
+        for index1 in range(1, Sheet.max_row + 1):
+            for index2 in range(1, Sheet.max_column + 1):
                 if Sheet.cell(index1, index2).value == "Documents":
                     docRowIndex = index1
                     docColIndex = index2
@@ -139,7 +188,7 @@ class Application(QWidget):
             if docRowIndex != 0:
                 break
 
-        for index in range(docRowIndex + 1, Sheet.max_row):
+        for index in range(docRowIndex + 1, Sheet.max_row + 1):
             if Sheet.cell(index, docColIndex).value is not None:
                 self.list_document.append(Sheet.cell(index, docColIndex).value)
 
@@ -187,6 +236,13 @@ class Application(QWidget):
         for filename in self.list_document:
             exec("self.correspondences['" + filename + "'] = self.tab2.edit" + filename + ".text().strip()")
 
+        DocPath = self.tab1.edit1.text()
+        if DocPath.split(".")[-1] == "xlsm":
+            Workbook = openpyxl.load_workbook(DocPath, data_only=True, keep_vba=True)
+        else:
+            Workbook = openpyxl.load_workbook(DocPath, data_only=True)
+
+        Workbook_XLRD = xlrd.open_workbook(DocPath)
         print(self.correspondences)
 
         for test in self.single_check_list:
@@ -198,39 +254,85 @@ class Application(QWidget):
                                 test[2] = TestSource.CheckDocumentTitle(self, test[4], test[5])
                         elif test[3] == 'CheckHyperlink':
                                 test[2] = TestSource.CheckHyperlink(self, test[4], test[5])
+                        elif test[3] == 'CheckDocInfoOrder':
+                                test[2] = TestSource.CheckDocInfoOrder(self, test[4], test[5])
 
                     elif nr_param == 3 and test[4] is not None and test[5] is not None and test[6] is not None:
                         if test[3] == 'CheckEqualValues':
                             test[2] = TestSource.CheckEqualValues(self, test[4], test[5], test[6])
-                        elif test[3] == 'CheckMultipleValues':
-                            test[2] = TestSource.CheckMultipleValues(self, test[4], test[5], test[6])
+                        elif test[3] == 'CountNumberOf  Points':
+                            test[2] = TestSource.CountNumberOfPoints(self, test[4], test[5], test[6])
+                        elif test[3] == 'CheckDocInfoParameter':
+                            test[2] = TestSource.CheckDocInfoParameter(self, test[4], test[5], test[6])
 
-                    elif nr_param == 4 and test[4] is not None and test[5] is not None and test[6] is not None and test[7] is not None:
-                        if test[3] == 'CheckDocInfoOrder':
-                            test[2] = TestSource.CheckDocInfoOrder(self, test[4], test[5], test[6], test[7])
-                        elif test[3] == 'CheckNumberOfPoints':
-                            test[2] = TestSource.CheckNumberOfPoints(self, test[4], test[5], test[6], test[7])
-
-                    elif nr_param == 5 and test[4] is not None and test[5] is not None and test[6] is not None and test[7] is not None and test[8] is not None:
+                    elif nr_param == 3 and test[4] is not None and test[6] is not None:
                         if test[3] == 'CheckDocInfoParameter':
-                            test[2] = TestSource.CheckDocInfoParameter(self, test[4], test[5], test[6], test[7], test[8])
+                            test[2] = TestSource.CheckDocInfoParameter(self, test[4], test[5], test[6])
 
                     else:
                         test[2] = 'NA'
                 else:
                     test[2] = 'NA'
 
-        DocPath = self.tab1.edit1.text()
-        Workbook = openpyxl.load_workbook(DocPath)
-        SheetSingleChecking = Workbook['Single_Checking']
+        alignment = Alignment(horizontal='general',vertical = 'bottom',text_rotation = 0,wrap_text = False,shrink_to_fit = False,indent = 0)
+        self.vsm_sheets = []
+        try:
+            PathTP = self.tab2.editTP.text()
+            if PathTP is not None:
+                PathTP = PathTP.replace("\n","")
+                if PathTP.split(".")[-1] == "xlsm":
+                    WorkbookTP = openpyxl.load_workbook(PathTP, data_only=True, keep_vba=True)
+                else:
+                    WorkbookTP = openpyxl.load_workbook(PathTP, data_only=True, keep_vba=True)
 
+            for sheet in WorkbookTP.sheetnames:
+                if re.match('^VSM.+_[0-9]{4}[A-Z]?$', sheet):
+                    self.vsm_sheets.append(sheet)
+
+        except:
+            pass
+
+        max_column = Workbook_XLRD.sheet_by_name('Multiple_Checking').ncols
+        for sheet in self.vsm_sheets:
+            current_cell = Workbook['Multiple_Checking'].cell(1, max_column + 1)
+            current_cell.value = sheet
+            current_cell.alignment = Alignment(horizontal='center',vertical = 'center',text_rotation = 90,wrap_text = True,shrink_to_fit = False,indent = 0)
+
+            max_column += 1
+        for test in self.multiple_check_list:
+            if test[1] == "Yes":
+                if test[3] in self.dict_function:
+                    nr_param = self.dict_function[test[3]]
+                    if nr_param == 3 and test[4] is not None and test[5] is not None and test[6] is not None:
+                        TestSource.CheckMultipleValues(self, test[4], test[5], test[6])
+                    else:
+                        test[2] = 'NA'
+                else:
+                    test[2] = 'NA'
+
+        #Single_Checking - write result in sheet
+        SheetSingleChecking = Workbook['Single_Checking']
         row = 2
         for test in self.single_check_list:
             my_cell = SheetSingleChecking.cell(row, 3)
             my_cell.value = test[2]
             row += 1
-        Workbook.save(DocPath)
 
+        #Multiple_Checking - write result in sheet
+        SheetMultipleChecking = Workbook['Multiple_Checking']
+        max_column = Workbook_XLRD.sheet_by_name('Multiple_Checking').ncols
+        row = 3
+        for list in self.multiple_results:
+            i = 1
+            for elem in list:
+                my_cell = SheetMultipleChecking.cell(row,max_column + i)
+                my_cell.value = elem
+                i += 1
+            row +=1
+
+
+
+        Workbook.save(DocPath)
         self.final_time = time.time()
         self.tab1.textbox.setText("Tests duration is " + time.strftime('%H:%M:%S', time.gmtime(self.final_time - self.start_time)))
         win32api.MessageBox(0, 'Tests finished successfully!', 'Information')

@@ -4,6 +4,7 @@ import zipfile
 import openpyxl
 from lxml import etree, objectify
 import xlrd
+from datetime import datetime
 import string
 import CheckList2Tabs
 
@@ -19,6 +20,8 @@ def column_to_number(c):
 def CheckEqualValues(self, Reference1, Reference2, Equal):
 
     try:
+        t1 = datetime.strptime(str(datetime.now()), "%Y-%m-%d %H:%M:%S.%f")
+
         if Reference1.split("<>")[0] in self.correspondences:
             DocPath1 = self.correspondences[Reference1.split("<>")[0]]
         else:
@@ -62,17 +65,21 @@ def CheckEqualValues(self, Reference1, Reference2, Equal):
         CelValue2 = DocSheet2.cell(int(row2) - 1, column_to_number(col2)-1).value
 
 
-        if str(Equal) == "1":
+        if str(Equal) == "1" or str(Equal).casefold() == "true":
             if CelValue1 == CelValue2:
-                return 'OK'
+                t2 = datetime.strptime(str(datetime.now()), "%Y-%m-%d %H:%M:%S.%f")
+                return 'OK', str(t2 - t1)
             else:
-                return 'NOK'
+                t2 = datetime.strptime(str(datetime.now()), "%Y-%m-%d %H:%M:%S.%f")
+                return 'NOK', str(t2 - t1)
 
-        elif str(Equal) == "0":
+        elif str(Equal) == "0" or str(Equal).casefold() == "false":
             if CelValue1 != CelValue2:
-                return 'OK'
+                t2 = datetime.strptime(str(datetime.now()), "%Y-%m-%d %H:%M:%S.%f")
+                return 'OK', str(t2 - t1)
             else:
-                return 'NOK'
+                t2 = datetime.strptime(str(datetime.now()), "%Y-%m-%d %H:%M:%S.%f")
+                return 'NOK', str(t2 - t1)
     except:
         return 'NA'
 
@@ -107,12 +114,16 @@ def CheckDocumentTitle(self, Reference1, Reference2):
 
 def CheckDocInfoParameter(self, DocInfoReference, NumberFile, Parameter):
     try:
-        if NumberFile is None:
+        if NumberFile == "":
+            pass
+        else:
+            NumberFile = str(int(NumberFile))
+        if NumberFile == "":
             DocLinkIntranet = 'http://docinfogroupe.inetpsa.com/ead/doc/ref.' + DocInfoReference + '/v.vc/pj'
             DocLinkInternet = 'https://docinfogroupe.psa-peugeot-citroen.com/ead/doc/ref.' + DocInfoReference + '/v.vc/pj'
         else:
-            DocLinkIntranet = 'http://docinfogroupe.inetpsa.com/ead/doc/ref.' + DocInfoReference + '/v.vc/nPj.' + str(NumberFile)
-            DocLinkInternet = 'https://docinfogroupe.psa-peugeot-citroen.com/ead/doc/ref.' + DocInfoReference + '/v.vc/nPj.' + str(NumberFile)
+            DocLinkIntranet = 'http://docinfogroupe.inetpsa.com/ead/doc/ref.' + DocInfoReference + '/v.vc/nPj.' + NumberFile
+            DocLinkInternet = 'https://docinfogroupe.psa-peugeot-citroen.com/ead/doc/ref.' + DocInfoReference + '/v.vc/nPj.' + NumberFile
 
 
         User = self.tab1.TextBoxUser.text()
@@ -243,13 +254,13 @@ def CountNumberOfPoints(self, Reference, Column, Equal):
         number_points = 0
 
         row = int(row_value) - 1
-        if str(Equal) == "1":
+        if str(Equal) == "1" or str(Equal).casefold() == "true":
             while(DocSheet.cell(row, column_to_number(col_value) -1 ).value != ""):
                 if DocSheet.cell(row, column_to_number(col_value) -1 ).value in input_values:
                     number_points += 1
                 row += 1
 
-        elif str(Equal) == "0":
+        elif str(Equal) == "0" or str(Equal).casefold() == "false":
             while (DocSheet.cell(row, column_to_number(col_value) - 1).value != ""):
                 if DocSheet.cell(row, column_to_number(col_value) - 1).value in input_values:
                     number_points += 1
@@ -286,12 +297,12 @@ def CheckMultipleValues(self, Column, Reference, Equal):
                     row += char
 
             Value = DocSheet.cell(int(row) - 1,column_to_number(col) - 1).value
-            if str(Equal) == "1":
+            if str(Equal) == "1" or str(Equal).casefold() == "true":
                 if Value in list_values:
                     current_results.append('OK')
                 else:
                     current_results.append('NOK')
-            elif str(Equal) == "":
+            elif str(Equal) == "0" or str(Equal).casefold() == "false":
                 if Value not in list_values:
                     current_results.append('OK')
                 else:

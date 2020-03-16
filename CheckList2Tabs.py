@@ -11,6 +11,7 @@ import win32api
 import re
 import xlrd
 import getpass
+from datetime import  datetime
 
 files_path = []
 appName = "Check Tool"
@@ -92,8 +93,8 @@ class Application(QWidget):
         tab.TextBoxPass.resize(180, 25)
         tab.TextBoxPass.move(250, 65)
         tab.TextBoxPass.setEchoMode((QLineEdit.Password))
-        # tab.TextBoxPass.setText("Cst12323")
-        tab.TextBoxPass.setText("")
+        tab.TextBoxPass.setText("Cst12323")
+        # tab.TextBoxPass.setText("")
 
         # set controls for Checklist
         tab.label1 = QLabel("Checklist", tab)
@@ -150,6 +151,7 @@ class Application(QWidget):
                             current_list.append(SheetSingleChecking.cell(index, indexCol).value)
                 except:
                     pass
+                current_list.append("")
                 self.single_check_list.append(current_list)
 
         #Multiple_Checking - parse the functions and the parameters from sheet
@@ -233,6 +235,8 @@ class Application(QWidget):
 
     def buttonCheckClicked(self):
 
+        d1 = datetime.strptime(str(datetime.now()), "%Y-%m-%d %H:%M:%S.%f")
+
         self.start_time = time.time()
 
         for filename in self.list_document:
@@ -242,12 +246,16 @@ class Application(QWidget):
         Workbook = xlrd.open_workbook(DocPath)
 
         print(self.correspondences)
+        nr_param_max = 0
 
         for test in self.single_check_list:
             if test[1] == "Yes":
                 if test[3] in self.dict_function:
                     nr_param = self.dict_function[test[3]]
                     if nr_param == 2 and test[4] != "" and test[5] != "":
+                        if nr_param > nr_param_max:
+                            nr_param_max = nr_param
+
                         if test[3] == 'CheckDocumentTitle':
                                 test[2] = TestSource.CheckDocumentTitle(self, test[4], test[5])
                         elif test[3] == 'CheckHyperlink':
@@ -256,14 +264,20 @@ class Application(QWidget):
                                 test[2] = TestSource.CheckDocInfoOrder(self, test[4], test[5])
 
                     elif nr_param == 3 and test[4] != "" and test[5] != "" and test[6] != "":
+                        if nr_param > nr_param_max:
+                            nr_param_max = nr_param
+
                         if test[3] == 'CheckEqualValues':
-                            test[2] = TestSource.CheckEqualValues(self, test[4], test[5], test[6])
+                            test[2], test[len(test) - 1] = TestSource.CheckEqualValues(self, test[4], test[5], test[6])
                         elif test[3] == 'CountNumberOfPoints':
                             test[2] = TestSource.CountNumberOfPoints(self, test[4], test[5], test[6])
                         elif test[3] == 'CheckDocInfoParameter':
                             test[2] = TestSource.CheckDocInfoParameter(self, test[4], test[5], test[6])
 
                     elif nr_param == 3 and test[4] != "" and test[6] != "":
+                        if nr_param > nr_param_max:
+                            nr_param_max = nr_param
+
                         if test[3] == 'CheckDocInfoParameter':
                             test[2] = TestSource.CheckDocInfoParameter(self, test[4], test[5], test[6])
 
@@ -313,6 +327,8 @@ class Application(QWidget):
         for test in self.single_check_list:
             my_cell = SheetSingleChecking.cell(row, 3)
             my_cell.value = test[2]
+            my_cell = SheetSingleChecking.cell(row, 4 + nr_param_max + 1)
+            my_cell.value = test[len(test) - 1]
             row += 1
 
         #Multiple_Checking - write result in sheet
@@ -339,8 +355,12 @@ class Application(QWidget):
 
 
         WorkbookToWrite.save(DocPath)
+        d2 = datetime.strptime(str(datetime.now()), "%Y-%m-%d %H:%M:%S.%f")
+        print(d2 - d1)
         self.final_time = time.time()
-        self.tab1.textbox.setText("Tests duration is " + time.strftime('%H:%M:%S', time.gmtime(self.final_time - self.start_time)))
+        # self.tab1.textbox.setText("Tests duration is " + time.strftime('%H:%M:%S', time.gmtime(self.final_time - self.start_time)))
+        self.tab1.textbox.setText("Tests duration is " + str(d2 - d1))
+
         win32api.MessageBox(0, 'Tests finished successfully!', 'Information')
 
 if __name__ == '__main__':

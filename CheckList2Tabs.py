@@ -134,6 +134,7 @@ class Application(QWidget):
 
         #Single_Checking - parse the functions and the parameters from the sheet
         SheetSingleChecking = self.Workbook.sheet_by_name('Single_Checking')
+        self.col_max = SheetSingleChecking.ncols
         for index in range(1, SheetSingleChecking.nrows):
             current_list = []
             if SheetSingleChecking.cell(index, 0).value != "":
@@ -246,40 +247,40 @@ class Application(QWidget):
         Workbook = xlrd.open_workbook(DocPath)
 
         print(self.correspondences)
-        nr_param_max = 0
+        # nr_param_max = 0
 
         for test in self.single_check_list:
             if test[1] == "Yes":
                 if test[3] in self.dict_function:
                     nr_param = self.dict_function[test[3]]
                     if nr_param == 2 and test[4] != "" and test[5] != "":
-                        if nr_param > nr_param_max:
-                            nr_param_max = nr_param
+                        # if nr_param > nr_param_max:
+                        #     nr_param_max = nr_param
 
                         if test[3] == 'CheckDocumentTitle':
-                                test[2] = TestSource.CheckDocumentTitle(self, test[4], test[5])
+                                test[2], test[len(test) - 1] = TestSource.CheckDocumentTitle(self, test[4], test[5])
                         elif test[3] == 'CheckHyperlink':
-                                test[2] = TestSource.CheckHyperlink(self, test[4], test[5])
+                                test[2], test[len(test) - 1] = TestSource.CheckHyperlink(self, test[4], test[5])
                         elif test[3] == 'CheckDocInfoOrder':
-                                test[2] = TestSource.CheckDocInfoOrder(self, test[4], test[5])
+                                test[2], test[len(test) - 1] = TestSource.CheckDocInfoOrder(self, test[4], test[5])
 
                     elif nr_param == 3 and test[4] != "" and test[5] != "" and test[6] != "":
-                        if nr_param > nr_param_max:
-                            nr_param_max = nr_param
+                        # if nr_param > nr_param_max:
+                        #     nr_param_max = nr_param
 
                         if test[3] == 'CheckEqualValues':
                             test[2], test[len(test) - 1] = TestSource.CheckEqualValues(self, test[4], test[5], test[6])
                         elif test[3] == 'CountNumberOfPoints':
-                            test[2] = TestSource.CountNumberOfPoints(self, test[4], test[5], test[6])
+                            test[2], test[len(test) - 1] = TestSource.CountNumberOfPoints(self, test[4], test[5], test[6])
                         elif test[3] == 'CheckDocInfoParameter':
-                            test[2] = TestSource.CheckDocInfoParameter(self, test[4], test[5], test[6])
+                            test[2], test[len(test) - 1] = TestSource.CheckDocInfoParameter(self, test[4], test[5], test[6])
 
                     elif nr_param == 3 and test[4] != "" and test[6] != "":
-                        if nr_param > nr_param_max:
-                            nr_param_max = nr_param
+                        # if nr_param > nr_param_max:
+                        #     nr_param_max = nr_param
 
                         if test[3] == 'CheckDocInfoParameter':
-                            test[2] = TestSource.CheckDocInfoParameter(self, test[4], test[5], test[6])
+                            test[2], test[len(test) - 1] = TestSource.CheckDocInfoParameter(self, test[4], test[5], test[6])
 
                     else:
                         test[2] = 'NA'
@@ -294,7 +295,8 @@ class Application(QWidget):
                 WorkbookTP = xlrd.open_workbook(PathTP)
 
                 for sheet in WorkbookTP.sheet_names():
-                    if re.match('^VSM.+_[0-9]{4}[A-Z]?$', sheet):
+                    # if re.match('^VSM.+_[0-9]{4}[A-Z]?$', sheet):
+                    if re.match('[A-Z]+[0-9]+_[0-9A-Z]+_[0-9]+_[0-9]+_[0-9A-Z]+', sheet):
                         self.vsm_sheets.append(sheet)
         except:
             pass
@@ -327,7 +329,7 @@ class Application(QWidget):
         for test in self.single_check_list:
             my_cell = SheetSingleChecking.cell(row, 3)
             my_cell.value = test[2]
-            my_cell = SheetSingleChecking.cell(row, 4 + nr_param_max + 1)
+            my_cell = SheetSingleChecking.cell(row, self.col_max + 1)
             my_cell.value = test[len(test) - 1]
             row += 1
 

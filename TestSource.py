@@ -81,10 +81,12 @@ def CheckEqualValues(self, Reference1, Reference2, Equal):
                 t2 = datetime.strptime(str(datetime.now()), "%Y-%m-%d %H:%M:%S.%f")
                 return 'NOK', str(t2 - t1)
     except:
-        return 'NA'
+        return 'NA', ""
 
 def CheckDocumentTitle(self, Reference1, Reference2):
     try:
+        t1 = datetime.strptime(str(datetime.now()), "%Y-%m-%d %H:%M:%S.%f")
+
         if Reference1 in self.correspondences:
             Value1 = self.correspondences[Reference1].split("/")[-1]
 
@@ -106,14 +108,18 @@ def CheckDocumentTitle(self, Reference1, Reference2):
         Value2 = DocSheet2.cell(int(row_value) - 1, column_to_number(col_value) - 1).value
 
         if Value1.split(".")[0] == Value2.split(".")[0]:
-            return 'OK'
+            t2 = datetime.strptime(str(datetime.now()), "%Y-%m-%d %H:%M:%S.%f")
+            return 'OK', str(t2 - t1)
         else:
-            return 'NOK'
+            t2 = datetime.strptime(str(datetime.now()), "%Y-%m-%d %H:%M:%S.%f")
+            return 'NOK', str(t2 - t1)
     except:
-        return 'NA'
+        return 'NA', ""
 
 def CheckDocInfoParameter(self, DocInfoReference, NumberFile, Parameter):
     try:
+        t1 = datetime.strptime(str(datetime.now()), "%Y-%m-%d %H:%M:%S.%f")
+
         if NumberFile == "":
             pass
         else:
@@ -149,13 +155,15 @@ def CheckDocInfoParameter(self, DocInfoReference, NumberFile, Parameter):
                     shutil.rmtree(ext, ignore_errors=True)
             except:
                 shutil.rmtree(ext, ignore_errors=True)
-
-        return returned_parameter
+        t2 = datetime.strptime(str(datetime.now()), "%Y-%m-%d %H:%M:%S.%f")
+        return returned_parameter, str(t2 -t1)
     except:
-        return 'NA'
+        return 'NA', ""
 
 def CheckHyperlink(self, Hyperlink, Reference):
     try:
+        t1 = datetime.strptime(str(datetime.now()), "%Y-%m-%d %H:%M:%S.%f")
+
         if Hyperlink.split("<>")[0] in self.correspondences:
             DocPath1 = self.correspondences[Hyperlink.split("<>")[0]]
         else:
@@ -181,14 +189,18 @@ def CheckHyperlink(self, Hyperlink, Reference):
         CelValue2 = DocSheet2[DocCel2].value
 
         if CelValue1 == CelValue2:
-            return 'OK'
+            t2 = datetime.strptime(str(datetime.now()), "%Y-%m-%d %H:%M:%S.%f")
+            return 'OK', str(t2 - t1)
         else:
-            return 'NOK'
+            t2 = datetime.strptime(str(datetime.now()), "%Y-%m-%d %H:%M:%S.%f")
+            return 'NOK', str(t2 - t1)
     except:
-        return 'NA'
+        return 'NA', ""
 
 def CheckDocInfoOrder(self, DocInfoReference, Reference):
     try:
+        t1 = datetime.strptime(str(datetime.now()), "%Y-%m-%d %H:%M:%S.%f")
+
         DocLinkIntranet = 'http://docinfogroupe.inetpsa.com/ead/doc/ref.' + DocInfoReference + '/v.vc/pj'
         DocLinkInternet = 'https://docinfogroupe.psa-peugeot-citroen.com/ead/doc/ref.' + DocInfoReference + '/v.vc/pj'
 
@@ -213,14 +225,18 @@ def CheckDocInfoOrder(self, DocInfoReference, Reference):
         CelValue2 = DocSheet2[DocCel2].value
 
         if Doc1Name == CelValue2:
-            return 'OK'
+            t2 = datetime.strptime(str(datetime.now()), "%Y-%m-%d %H:%M:%S.%f")
+            return 'OK', str(t2 -t1)
         else:
-            return 'NOK'
+            t2 = datetime.strptime(str(datetime.now()), "%Y-%m-%d %H:%M:%S.%f")
+            return 'NOK', str(t2 - t1)
     except:
-        return 'NA'
+        return 'NA', ""
 
 def CountNumberOfPoints(self, Reference, Column, Equal):
     try:
+        t1 = datetime.strptime(str(datetime.now()), "%Y-%m-%d %H:%M:%S.%f")
+
         if Reference.split("<>")[0] in self.correspondences:
             DocPath = self.correspondences[Reference.split("<>")[0]]
         else:
@@ -265,14 +281,16 @@ def CountNumberOfPoints(self, Reference, Column, Equal):
                 if DocSheet.cell(row, column_to_number(col_value) - 1).value in input_values:
                     number_points += 1
                 row += 1
-
-        return number_points
+        t2 = datetime.strptime(str(datetime.now()), "%Y-%m-%d %H:%M:%S.%f")
+        return number_points, str(t2 - t1)
     except:
-        return 'NA'
+        return 'NA', ""
 
 def CheckMultipleValues(self, Column, Reference, Equal):
 
     try:
+        t1 = datetime.strptime(str(datetime.now()), "%Y-%m-%d %H:%M:%S.%f")
+
         WorkSheet = self.Workbook.sheet_by_name('Config')
         column = int(Column)
         list_values = []
@@ -307,12 +325,17 @@ def CheckMultipleValues(self, Column, Reference, Equal):
                     current_results.append('OK')
                 else:
                     current_results.append('NOK')
+        t2 = datetime.strptime(str(datetime.now()), "%Y-%m-%d %H:%M:%S.%f")
+        current_results.append(str(t2 - t1))
         self.multiple_results.append(current_results)
     except:
         return 'NA'
 
 def CheckIO(self, Reference1, Reference2, Type):
     try:
+        t1 = datetime.strptime(str(datetime.now()), "%Y-%m-%d %H:%M:%S.%f")
+
+
         if Reference1.split("<>")[0] in self.correspondences:
             DocPath1 = self.correspondences[Reference1.split("<>")[0]]
         else:
@@ -372,6 +395,9 @@ def CheckIO(self, Reference1, Reference2, Type):
                     current_results.append("OK")
                 else:
                     current_results.append(nr_errors)
+
+            t2 = datetime.strptime(str(datetime.now()), "%Y-%m-%d %H:%M:%S.%f")
+            current_results.append(str(t2 - t1))
             self.multiple_results.append(current_results)
 
         elif int(Column1) == 11:
@@ -391,6 +417,9 @@ def CheckIO(self, Reference1, Reference2, Type):
                     current_results.append("OK")
                 else:
                     current_results.append(nr_errors)
+
+            t2 = datetime.strptime(str(datetime.now()), "%Y-%m-%d %H:%M:%S.%f")
+            current_results.append(str(t2 - t1))
             self.multiple_results.append(current_results)
 
     except:
